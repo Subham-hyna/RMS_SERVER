@@ -17,26 +17,22 @@ class ApiFeatures {
       return this;
     }
 
-    searchBook() {
-      const keyword = this.queryStr.keyword
+    searchItem() {
+      const q = this.queryStr.q
         ? {
             $or : [
-                {ISBN: {
-                    $regex: this.queryStr.keyword,
+                {name: {
+                    $regex: this.queryStr.q,
                     $options: "i",
                 }},
-                {title: {
-                    $regex: this.queryStr.keyword,
-                    $options: "i",
-                }},
-                {author: {
-                    $regex: this.queryStr.keyword,
+                {shortCode: {
+                    $regex: this.queryStr.q,
                     $options: "i",
                 }}
             ]
           }
         : {};
-        this.query = this.query.find(keyword);
+        this.query = this.query.find(q);
       return this;
     }
     

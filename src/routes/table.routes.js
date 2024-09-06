@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authoriseRoles, verifyJWT } from "../middlewares/auth.middleware.js";
-import { addTable, deleteTable, editTable, editTableArea, getAllTables } from "../controllers/table.controllers.js";
+import { addTable, deleteTable, editTable, editTableArea, getAllTables, tableExistInShop } from "../controllers/table.controllers.js";
 
 const router = Router();
 
@@ -18,5 +18,8 @@ router.route("/getMyTables/:shopId")
 
 router.route("/delete-table/:tableId/:shopId")
     .delete(verifyJWT,authoriseRoles("OWNER"),deleteTable);
+
+router.route("/table-exist/:tableNo/:shopId")
+    .get(tableExistInShop)
 
 export default router

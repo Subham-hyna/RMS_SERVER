@@ -200,7 +200,7 @@ export const getAllTables = asyncHandler(async(req,res,next) => {
     .json(
         new ApiResponse(200,{
             tables
-        },"Books fetched successfully")
+        },"Tables fetched successfully")
     )
 })
 
@@ -238,3 +238,19 @@ export const deleteTable = asyncHandler(async (req, res, next) => {
 
     res.status(200).json(new ApiResponse(200, {}, "Table deleted successfully"));
 });
+
+
+export const tableExistInShop = asyncHandler(async(req,res,next)=>{
+
+    const {tableNo, shopId} = req.params;
+
+    const tableExist = await Table.findOne({
+        $and: [{ shopId }, { name: tableNo }]
+    }).populate("shopId", "name")
+
+    if(!tableExist){
+        return next(new ApiError(404,"Invalid Url"))
+    }
+
+    res.status(200).json(new ApiResponse(200,{shopName: tableExist.shopId.name},"Table Exist"))
+})

@@ -8,7 +8,7 @@ import { errorMiddleware } from "./middlewares/error.middleware.js";
 const app = express();
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: [process.env.CORS_ORIGIN,"http://192.168.31.47:3000"],
     credentials: true
 }))
 app.use(express.json({limit: JSONDATA_LIMIT}));
@@ -25,12 +25,15 @@ import userRouter from "./routes/user.routes.js"
 import shopRouter from "./routes/shop.routes.js"
 import areaRouter from "./routes/area.routes.js"
 import tableRouter from "./routes/table.routes.js"
+import categoryRouter from "./routes/category.routes.js"
+import itemRouter from "./routes/item.routes.js"
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/shops", shopRouter);
 app.use("/api/v1/areas", areaRouter);
 app.use("/api/v1/tables", tableRouter);
-
+app.use("/api/v1/categories", categoryRouter);
+app.use("/api/v1/items", itemRouter);
 
 app.use(errorMiddleware);
 

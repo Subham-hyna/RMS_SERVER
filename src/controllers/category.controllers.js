@@ -1,9 +1,9 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import { Category } from "../models/categories.model.js";
+import { Category } from "../models/category.model.js";
 import { Shop } from "../models/shop.model.js";
-import FoodItem from "../models/foodItems.model.js";
+import { Item } from "../models/item.model.js";
 
 export const addCategory = asyncHandler(async (req, res, next) => {
     const { name, priority } = req.body;
@@ -111,11 +111,11 @@ export const deleteCategory = asyncHandler(async (req, res, next) => {
     }
   
 
-    const items = await FoodItem.find({categoryId:category._id});
+    const items = await Item.find({categoryId:category._id});
 
     if(items.length !== 0){
         items.forEach(async(t)=>{
-            await FoodItem.findByIdAndDelete(t._id);
+            await Item.findByIdAndDelete(t._id);
         })
     }
 
@@ -128,25 +128,12 @@ export const deleteCategory = asyncHandler(async (req, res, next) => {
 });
 
 
-export const getCategoryById = asyncHandler(async (req, res, next) => {
-    const category = await Category.findById(req.params.categoryId);
-    if (!category) {
-        return next(new ApiError(404, "Category not found"));
-    }
-    res.status(200).json(new ApiResponse(200, { category }, "Category details retrieved successfully"));
-});
-
-
 export const getAllCategories = asyncHandler(async (req, res, next) => {
 
     const shop = await Shop.findById(req.params.shopId);
 
     if (!shop) {
         return next(new ApiError(400, "Shop doesn't exist"));
-    }
-
-    if (shop.ownerId.toString() !== req.user._id.toString()) {
-        return next(new ApiError(400, "Unknown Shop"));
     }
 
     const categories = await Category.find({ shopId: req.params.shopId }).sort({ priority: 1 });

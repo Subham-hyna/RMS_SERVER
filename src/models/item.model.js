@@ -1,33 +1,41 @@
 import mongoose from "mongoose";
-const foodItemsSchema = new mongoose.Schema({
+import { veg_nonNeg } from "../constants.js";
+
+const itemSchema = new mongoose.Schema({
 
     name: {
-        type: String
+        type: String,
+        required: true,
+        trim: true
     },
     categoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category'
     },
     price: {
-        type: Number
+        type: Number,
+        required: true
     },
-    mealtype: {
-        type: string,
-        enum: ['veg', 'non-veg', 'eggs']
+    mealType: {
+        type: String,
+        enum: veg_nonNeg,
+        required: true
     },
     isAvailable: {
-        type: Boolean
+        type: Boolean,
+        default: true
     },
     shortCode: {
-        type: String
+        type: String,
     },
-    photo: {
-        type: String
+    isStar: {
+        type: Boolean,
+        default: false
     },
     shopId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Shop'
     }
 });
-const FoodItem = mongoose.model('FoodItem', foodItemsSchema);
-export default FoodItem;
+
+export const Item = mongoose.model('Item', itemSchema);

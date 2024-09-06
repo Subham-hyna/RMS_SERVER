@@ -1,18 +1,20 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import FoodItem from "../models/foodItems.model.js";
-import { Category } from "../models/categories.model.js";
+import {Item} from "../models/item.model.js";
+import { Category } from "../models/category.model.js";
 import { Shop } from "../models/shop.model.js";
+import { ApiFeatures } from "../utils/apiFeatures.js";
 
-export const addFoodItem = asyncHandler(async (req, res, next) => {
-    const { name, price, mealtype, isAvailable, shortCode, photo, categoryId } = req.body;
+export const addItem = asyncHandler(async (req, res, next) => {
+    const { name, price, mealType, shortCode, categoryId } = req.body;
 
-    if (!name || !price || !mealtype || !categoryId) {
+    if (!name || !price || !mealType || !categoryId) {
         return next(new ApiError(400, "All fields are required"));
     }
 
     const shop = await Shop.findById(req.params.shopId);
+
     if (!shop) {
         return next(new ApiError(400, "Shop doesn't exist"));
     }
@@ -21,40 +23,48 @@ export const addFoodItem = asyncHandler(async (req, res, next) => {
         return next(new ApiError(400, "Unknown Shop"));
     }
 
-    const category = await Category.findOne({
-        $and: [{ shopId: shop._id }, { _id: categoryId }]
+    const item = await Item.findOne({
+        $and: [{ shopId: shop._id }, { name }]
     });
 
-    if (!category) {
-        return next(new ApiError(400, "Category doesn't exist"));
+    if (item) {
+        return next(new ApiError(400, "Item already exist"));
     }
 
-    const foodItem = await FoodItem.create({
+    const newItem = await Item.create({
         name,
         price,
-        mealtype,
-        isAvailable,
+        mealType,
         shortCode,
-        photo,
         categoryId,
         shopId: shop._id
     });
 
-    if (!foodItem) {
+    if (!newItem) {
         return next(new ApiError(400, "Error in adding Food Item"));
     }
 
-    await Category.findByIdAndUpdate(categoryId, {
-        noOfItems: category.noOfItems + 1
-    });
+    const category = await Category.findById(categoryId);
 
-    res.status(201).json(new ApiResponse(201, { foodItem }, "Food Item added successfully"));
+    await Category.findByIdAndUpdate(
+        categoryId,
+        {
+            noOfItems: category.noOfItems + 1
+        }
+    )
+
+    res
+    .status(201)
+    .json(
+        new ApiResponse(201, { item: newItem }, "Food Item added successfully"
+    ));
 });
 
-export const editFoodItem = asyncHandler(async (req, res, next) => {
-    const { name, price, mealtype, isAvailable, shortCode, photo } = req.body;
+export const editItem = asyncHandler(async (req, res, next) => {
+    const { name, price, mealType, isAvailable, shortCode, isStar } = req.body;
 
     const shop = await Shop.findById(req.params.shopId);
+
     if (!shop) {
         return next(new ApiError(400, "Shop doesn't exist"));
     }
@@ -63,23 +73,23 @@ export const editFoodItem = asyncHandler(async (req, res, next) => {
         return next(new ApiError(400, "Unknown Shop"));
     }
 
-    const foodItem = await FoodItem.findOne({
-        $and: [{ shopId: shop._id }, { _id: req.params.foodItemId }]
+    const item = await Item.findOne({
+        $and: [{ shopId: shop._id }, { _id: req.params.itemId }]
     });
 
-    if (!foodItem) {
+    if (!item) {
         return next(new ApiError(400, "Food Item doesn't exist"));
     }
 
-    const updatedFoodItem = await FoodItem.findByIdAndUpdate(
-        req.params.foodItemId,
+    const updatedItem = await Item.findByIdAndUpdate(
+        req.params.itemId,
         {
-            name: name || foodItem.name,
-            price: price || foodItem.price,
-            mealtype: mealtype || foodItem.mealtype,
-            isAvailable: isAvailable !== undefined ? isAvailable : foodItem.isAvailable,
-            shortCode: shortCode || foodItem.shortCode,
-            photo: photo || foodItem.photo
+            name: name || item.name,
+            price: price || item.price,
+            mealType: mealType || item.mealType,
+            isAvailable: isAvailable || item.isAvailable,
+            shortCode: shortCode || item.shortCode,
+            isStar: isStar || item.isStar
         },
         {
             new: true,
@@ -87,15 +97,83 @@ export const editFoodItem = asyncHandler(async (req, res, next) => {
         }
     );
 
-    if (!updatedFoodItem) {
+    if (!updatedItem) {
         return next(new ApiError(400, "Food Item not updated"));
     }
 
-    res.status(200).json(new ApiResponse(200, { foodItem: updatedFoodItem }, "Food Item details updated"));
+    res.status(200).json(new ApiResponse(200, { item: updatedItem }, "Food Item details updated"));
 });
 
-export const deleteFoodItem = asyncHandler(async (req, res, next) => {
+export const editItemCategory = asyncHandler(async(req,res,next)=>{
+    const { categoryId } = req.body;
+
     const shop = await Shop.findById(req.params.shopId);
+
+    if(!shop){
+        return next(new ApiError(400,"Shop doen't exist"))
+    }
+
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown Shop"))
+    }
+    
+    const item = await Item.findOne({
+        $and: [{ shopId:shop._id }, { _id:req.params.itemId }]
+    });
+
+    if(!item){
+        return next (new ApiError(400,"Item doen't exist"));
+    }
+
+    if(categoryId.toString() === item.categoryId.toString()){
+        return next(new ApiError(400,"Same Category"));
+    }
+
+    const updatedItem = await Item.findByIdAndUpdate(
+        req.params.itemId,
+        {
+            categoryId: categoryId,
+     
+        },
+        { 
+            new: true, 
+            runValidators: true
+        }
+    );
+
+    if (!updatedItem) {
+        return next(new ApiError(400, "Item not updated"));
+    }
+
+    const category1 = await Category.findById(categoryId);
+
+    await Category.findByIdAndUpdate(
+        categoryId,
+        {
+            noOfItems: category1.noOfItems + 1
+        }
+    )
+
+    const category2 = await Category.findById(item.categoryId);
+
+    await Category.findByIdAndUpdate(
+        item.categoryId,
+        {
+            noOfItems: category2.noOfItems - 1
+        }
+    )
+
+    res
+    .status(200)
+    .json(
+        new ApiResponse(200, { item: updatedItem }, "Table details updated")
+    );
+})
+
+export const deleteItem = asyncHandler(async (req, res, next) => {
+
+    const shop = await Shop.findById(req.params.shopId);
+
     if (!shop) {
         return next(new ApiError(400, "Shop doesn't exist"));
     }
@@ -104,43 +182,51 @@ export const deleteFoodItem = asyncHandler(async (req, res, next) => {
         return next(new ApiError(400, "Unknown Shop"));
     }
 
-    const foodItem = await FoodItem.findOne({
-        $and: [{ shopId: shop._id }, { _id: req.params.foodItemId }]
+    const item = await Item.findOne({
+        $and: [{ shopId: shop._id }, { _id: req.params.itemId }]
     });
 
-    if (!foodItem) {
-        return next(new ApiError(400, "Food Item doesn't exist"));
+    if (!item) {
+        return next(new ApiError(400, "Item doesn't exist"));
     }
 
-    const category = await Category.findById(foodItem.categoryId);
-    await Category.findByIdAndUpdate(category._id, {
+    const category = await Category.findById(item.categoryId);
+
+    await Category.findByIdAndUpdate(
+        category._id, 
+        {
         noOfItems: category.noOfItems - 1
-    });
+        }
+    )
 
-    await FoodItem.findByIdAndDelete(req.params.foodItemId);
+    await Item.findByIdAndDelete(req.params.itemId);
 
-    res.status(200).json(new ApiResponse(200, {}, "Food Item deleted successfully"));
+    res.status(200).json(new ApiResponse(200, {}, "Item deleted successfully"));
 });
 
-export const getFoodItemById = asyncHandler(async (req, res, next) => {
-    const foodItem = await FoodItem.findById(req.params.foodItemId);
-    if (!foodItem) {
-        return next(new ApiError(404, "Food Item not found"));
-    }
-    res.status(200).json(new ApiResponse(200, { foodItem }, "Food Item details retrieved successfully"));
-});
+export const getAllItems = asyncHandler(async(req,res,next) => {
 
-export const getAllFoodItems = asyncHandler(async (req, res, next) => {
     const shop = await Shop.findById(req.params.shopId);
-    if (!shop) {
-        return next(new ApiError(400, "Shop doesn't exist"));
+
+    if(!shop){
+        return next(new ApiError(400,"Shop doen't exist"))
+    }
+    
+    let apiFeatures = new ApiFeatures(Item.find({shopId:req.params.shopId}).sort({createdAt : 1}).populate("categoryId","name _id"),req.query)
+    .searchItem()
+    .filter()
+
+    const items = await apiFeatures.query;
+
+    if(!items){
+        return next(new ApiError(401,"Error in fetching tables"))
     }
 
-    if (shop.ownerId.toString() !== req.user._id.toString()) {
-        return next(new ApiError(400, "Unknown Shop"));
-    }
-
-    const foodItems = await FoodItem.find({ shopId: req.params.shopId }).sort({ createdAt: 1 });
-
-    res.status(200).json(new ApiResponse(200, { foodItems }, "List of all Food Items retrieved successfully"));
-});
+    res
+    .status(200)
+    .json(
+        new ApiResponse(200,{
+            items
+        },"Items fetched successfully")
+    )
+})
