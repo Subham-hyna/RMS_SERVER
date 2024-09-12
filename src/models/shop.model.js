@@ -19,15 +19,12 @@ const shopsSchema = new mongoose.Schema({
     },
     gstIn: {
         type: String,
+        unique: true
     },
     shopType: {
         type: String,
         enum: SHOP_TYPE
     },
-    employeesId: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
     noOfemployees: {
         type: Number,
         default: 0
@@ -38,9 +35,23 @@ const shopsSchema = new mongoose.Schema({
         default: "ACTIVE"
     },
     address: {
-        type: Array,
-        required: true
-    },
+        line1: { 
+         type: String,
+         required: true
+         },
+        line2: { 
+         type: String,
+         required: true
+         },
+        pincode: { 
+         type: String,
+         required: true
+         },
+        state: { 
+         type: String,
+         required: true
+         },
+     },
 },{
     timestamps: true
 });

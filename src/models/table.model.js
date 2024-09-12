@@ -13,6 +13,10 @@ const tablesSchema = new mongoose.Schema({
     noOfSeats: {
         type: Number
     },
+    isEmpty:{
+        type:Boolean,
+        default: true
+    },
     shape: {
         type: String,
         enum: tableShape
@@ -20,6 +24,10 @@ const tablesSchema = new mongoose.Schema({
     shopId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Shop'
+    },
+    invoiceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Invoice'
     }
 });
 export const Table = mongoose.model('Table', tablesSchema);

@@ -6,9 +6,9 @@ import { sendEmail } from "../utils/smtp.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 export const addShop = asyncHandler( async(req,res,next) => {
-    const {name, phoneNo, email, gstIn, shopType, address} = req.body;
+    const {name, phoneNo, email, gstIn, shopType, line1, line2, pincode, state} = req.body;
 
-    if( [name,email,phoneNo,address,gstIn,shopType].some((field) => field.trim() === "")){
+    if( [name,email,phoneNo,gstIn,shopType].some((field) => field.trim() === "")){
         return next(new ApiError(400, "All fields are required"))
     }
 
@@ -19,6 +19,15 @@ export const addShop = asyncHandler( async(req,res,next) => {
     if(shopExist){
         return next(new ApiError(400,"Shop exist with same gstin No."));
     }
+    
+    const address = {
+        line1,
+        line2,
+        pincode,
+        state
+    }
+    console.log(address)
+
 
     const shop = await Shop.create({
         name,
@@ -41,7 +50,7 @@ export const addShop = asyncHandler( async(req,res,next) => {
     res
         .status(201)
         .json(
-            new ApiResponse(201,{shop:createdShop},"Shop Created Successfully")
+            new ApiResponse(201,{},"Shop Created Successfully")
         )
 })
 
@@ -52,6 +61,10 @@ export const editShop = asyncHandler( async(req,res,next) => {
 
     if(!shop){
         return next(new ApiError(400,"Shop Doesn't Exist"));
+    }
+
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown shop"))
     }
 
     const updatedShop = await Shop.findByIdAndUpdate(
@@ -67,7 +80,7 @@ export const editShop = asyncHandler( async(req,res,next) => {
         },
         {
             new: true,
-            runValidators: true
+            validateBeforeSave: true
         }
     )
 
@@ -86,11 +99,24 @@ export const getMyShops = asyncHandler(async(req,res,next)=>{
 
     const shops = await Shop.find({ownerId:req.user._id});
 
-    const totalShops = shops.length;
+    res
+    .status(200)
+    .json(
+        new ApiResponse(200,{shops},"Shops fetched successfully")
+    )
+})
+
+export const getMyShop = asyncHandler(async(req,res,next)=>{
+
+    const shop = await Shop.findById(req.params.shopId);
+    
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown shop"))
+    }
 
     res
     .status(200)
     .json(
-        new ApiResponse(200,{shops,totalShops},"Shops fetched successfully")
+        new ApiResponse(200,{shop},"Shop fetched successfully")
     )
 })

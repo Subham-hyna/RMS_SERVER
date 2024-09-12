@@ -25,11 +25,9 @@ const userSchema = new Schema({
     avatar: {
         public_id: {
           type: String,
-          required: true,
         },
         url: {
           type: String,
-          required: true,
         }
     },
     password: {
@@ -43,8 +41,22 @@ const userSchema = new Schema({
         select: false
     },
     address: {
-        type: Array,
+       line1: { 
+        type: String,
         required: true
+        },
+       line2: { 
+        type: String,
+        required: true
+        },
+       pincode: { 
+        type: String,
+        required: true
+        },
+       state: { 
+        type: String,
+        required: true
+        },
     },
     role: {        
         type: String,
@@ -53,10 +65,22 @@ const userSchema = new Schema({
         default: 'OWNER'
     },
     isOwner:{
-        type: Boolean
+        type: Boolean,
+        default: true
     },
-    saleID:{
+    employeeOf:{
+        type: Schema.Types.ObjectId,
+        ref: 'Shop'
+    },
+    salary:{
         type: String,
+    },
+    salaryReceived:{
+        type: Date
+    },
+    saleId:{
+        type: String,
+        unique: true
     },
     dateOfJoining: {
         type: Date,

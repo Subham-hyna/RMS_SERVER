@@ -181,10 +181,6 @@ export const getAllTables = asyncHandler(async(req,res,next) => {
     if(!shop){
         return next(new ApiError(400,"Shop doen't exist"))
     }
-
-    if(shop.ownerId.toString() !== req.user._id.toString()){
-        return next(new ApiError(400,"Unknown Shop"))
-    }
     
     let apiFeatures = new ApiFeatures(Table.find({shopId:req.params.shopId}).sort({createdAt : 1}).populate("areaId","name _id"),req.query)
     .searchTable()

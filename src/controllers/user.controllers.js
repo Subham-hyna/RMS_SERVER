@@ -11,9 +11,9 @@ import crypto from "crypto";
 
 export const registerOwner = asyncHandler( async(req,res,next) => {
 
-    const { name, email, phoneNo, address, password } = req.body;
+    const { name, email, phoneNo, line1, line2, pincode, state, password } = req.body;
 
-    if( [name,email,phoneNo,address,password].some((field) => field.trim() === "")){
+    if( [name,email,phoneNo,password].some((field) => field.trim() === "")){
         return next(new ApiError(400, "All fields are required"))
     }
 
@@ -21,9 +21,16 @@ export const registerOwner = asyncHandler( async(req,res,next) => {
         $or: [{ email }, { phoneNo }]
     })
 
+    const address = {
+        line1,
+        line2,
+        pincode,
+        state
+    }
+
     if(userExist){
         if(userExist.isUserVerified){
-            return next(new ApiError(400,"User already exist for this email or registartion Number"))
+            return next(new ApiError(400,"User already exist for this email or Phone Number"))
         }
         else{
             const image = await uploadOnCloudinary(req.file.path)
@@ -86,7 +93,7 @@ export const registerOwner = asyncHandler( async(req,res,next) => {
     
             await createdUser.save({ validateBeforeSave: false });
           
-            const VerificationLink = process.env.FRONTEND_URL + "user/verify/" +verifyToken ;
+            const VerificationLink = process.env.FRONTEND_URL + "user/owner/verify/" +verifyToken ;
 
             await sendEmail(createdUser.email,"User Verification", userVerificationTemplate(createdUser.name,VerificationLink,OTP))
 
@@ -99,7 +106,7 @@ export const registerOwner = asyncHandler( async(req,res,next) => {
 
 })
 
-export const verifyOwner = asyncHandler( async(req,res,next) => {
+export const verifyUser = asyncHandler( async(req,res,next) => {
 
     const {otp} = req.body;
 
@@ -110,7 +117,7 @@ export const verifyOwner = asyncHandler( async(req,res,next) => {
   
     const user = await User.findOne({
       verificationToken
-    })
+    }).select("+password")
 
     if(!user){
         return next(new ApiError(400,"Verification Link is invalid"))
@@ -128,7 +135,7 @@ export const verifyOwner = asyncHandler( async(req,res,next) => {
                 verificationToken: 1
             },
             $set:{
-                isUserVerified: true
+                isUserVerified: true,
             }
         },
         {
@@ -136,7 +143,28 @@ export const verifyOwner = asyncHandler( async(req,res,next) => {
         }
     )
 
-    await sendEmail(verifiedUser.email,"Account Credentials",userCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.phoneNo,"password",process.env.FRONTEND_URL));
+    if(verifiedUser.role === "WAITER"){
+        let password = '';
+        const str = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+            'abcdefghijklmnopqrstuvwxyz0123456789@#$';
+     
+        for (let i = 1; i <= 8; i++) {
+            let char = Math.floor(Math.random()
+                * str.length + 1);
+     
+            password += str.charAt(char)
+        }
+
+        verifiedUser.password = password;
+        verifiedUser.dateOfJoining = Date.now();
+
+        await verifiedUser.save({validateBeforeSave: false})
+
+        await sendEmail(verifiedUser.email,"Account Credentials",userCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.saleId,password,process.env.FRONTEND_URL));
+    }
+    else{
+        await sendEmail(verifiedUser.email,"Account Credentials",userCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.phoneNo,"password",process.env.FRONTEND_URL));
+    }
 
     res.status(201).json(
         new ApiResponse(201,{},"You are successfully Verified. Account Credentials have been set via email")
@@ -172,7 +200,7 @@ export const loginOwner = asyncHandler( async(req,res,next) => {
     sendToken(user,200,res,"Logged In Successfully");
 })
 
-export const logoutOwner = asyncHandler( async(req,res,next) => {
+export const logoutUser = asyncHandler( async(req,res,next) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
@@ -195,4 +223,105 @@ export const logoutOwner = asyncHandler( async(req,res,next) => {
     .clearCookie("LMS_accessToken", options)
     .clearCookie("LMS_refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"))
+})
+
+export const getCurrentUser = asyncHandler(async(req,res,next)=>{
+    res.status(200).json(
+        new ApiResponse(200,{user:req.user},"User fetched successfully")
+    )
+})
+
+export const changeCurrentPassword = asyncHandler(async(req,res,next) => {
+    const {oldPassword, newPassword} = req.body
+
+    const user = await User.findById(req.user?._id).select("+password")
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid old password")
+    }
+
+    user.password = newPassword
+    await user.save({validateBeforeSave: false})
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"))
+
+})
+
+export const updateAvatar = asyncHandler(async(req,res,next) => {
+    
+    if(!req.file){
+        return next(new ApiError(400,"Please select a file"))
+    }
+
+    const user = await User.findById(req.user?._id);
+    await deleteFromCloudinary(user.avatar.public_id);
+
+
+    const image = await uploadOnCloudinary(req.file.path);
+
+    const avatar = {
+        public_id: image.public_id,
+        url: image.secure_url
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+            $set:{
+                avatar
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    if(!updatedUser){
+        return next(new ApiError(401,"Avatar not uploaded"))
+    }
+
+    res
+    .status(201)
+    .json(
+        new ApiResponse(201,{user: updatedUser},"Avatar Updated successfully")
+    )
+})
+
+export const updateOwnerDetails = asyncHandler(async(req,res,next)=>{
+    const {name, email, phoneNo, line1, line2, pincode, state} = req.body;
+
+    const user = await User.findById(req.user._id);
+
+    if(!user){
+        return next(new ApiError(404,"User Not Found"))
+    }
+
+    console.log(user.address)
+
+    const address = {
+        line1,
+        line2,
+        pincode,
+        state
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            name: name || user.name,
+            email: email || user.email,
+            phoneNo: phoneNo || user.phoneNo,
+            address: address || user.address
+        },{
+            new: true,
+            validateBeforeSave: true
+        }
+    ) 
+
+    res.status(201).json(
+        new ApiResponse(201,{user:updatedUser},"User updated")
+    )
 })

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+
 const customerSchema = new mongoose.Schema({
  
     name: {
@@ -7,19 +8,15 @@ const customerSchema = new mongoose.Schema({
     phoneNo: {
         type: String
     },
-    email: {
-        type: String
-    },
     totalSpending: {
         type: Number
     },
-    lastVisit: {
+    lastVisited: {
         type: Date
     },
     shopId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'shops'
+        ref: 'Shop'
     }
 });
-const Customer = mongoose.model('Customer', customerSchema);
-export default Customer;
+export const Customer = mongoose.model('Customer', customerSchema);

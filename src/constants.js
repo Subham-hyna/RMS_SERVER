@@ -6,3 +6,7 @@ export const SHOP_TYPE = ['CAFE', 'DHABA', 'RESTRURANT']
 export const SHOP_STATUS = ["ACTIVE", "INACTIVE"]
 export const tableShape = ["CIRCLE","RECTANGLE"];
 export const veg_nonNeg = ["VEG", "NONVEG"]
+export const USER_RESULT_PER_PAGE = 15;
+export const KOT_TYPE = ['DINEIN', 'TAKEAWAY', 'DELIVERY']
+export const KOT_STATUS = ['REQUESTED', 'COOKING', 'SERVED']
+export const INVENTORY_ITEM_STATUS = ['AVAILABLE', 'OUT_OF_STOCK']

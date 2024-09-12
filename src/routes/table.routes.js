@@ -14,7 +14,7 @@ router.route("/edit-tableArea/:tableId/:shopId")
     .put(verifyJWT,authoriseRoles("OWNER"),editTableArea);
 
 router.route("/getMyTables/:shopId")
-    .get(verifyJWT,authoriseRoles("OWNER"),getAllTables);
+    .get(verifyJWT,getAllTables);
 
 router.route("/delete-table/:tableId/:shopId")
     .delete(verifyJWT,authoriseRoles("OWNER"),deleteTable);
