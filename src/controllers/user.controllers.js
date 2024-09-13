@@ -5,6 +5,7 @@ import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js
 import { sendEmail } from "../utils/smtp.js";
 import userVerificationTemplate from "../mailTemplates/userVerification.template.js";
 import userCredentialsTemplate from "../mailTemplates/userCredentials.template.js"
+import { passwordResetMail} from '../mailTemplates/passwordReset.template.js'
 import {ApiResponse} from "../utils/apiResponse.js"
 import { sendToken } from "../utils/sendToken.js"
 import crypto from "crypto";
@@ -93,7 +94,7 @@ export const registerOwner = asyncHandler( async(req,res,next) => {
     
             await createdUser.save({ validateBeforeSave: false });
           
-            const VerificationLink = process.env.FRONTEND_URL + "user/owner/verify/" +verifyToken ;
+            const VerificationLink = process.env.FRONTEND_URL + "user/verify/" +verifyToken ;
 
             await sendEmail(createdUser.email,"User Verification", userVerificationTemplate(createdUser.name,VerificationLink,OTP))
 
@@ -325,3 +326,75 @@ export const updateOwnerDetails = asyncHandler(async(req,res,next)=>{
         new ApiResponse(201,{user:updatedUser},"User updated")
     )
 })
+
+export const forgotPassword = asyncHandler( async(req,res,next) => {
+
+    const user = await User.findOne({ email: req.body.email , 
+        isUserVerified: true});
+  
+    if (!user) {
+      return next(new ApiError(404,"User not found"));
+    }
+  
+    const resetToken = user.getResetPasswordToken();
+    
+    await user.save({ validateBeforeSave: false });
+  
+    const resetPasswordUrl = process.env.FRONTEND_URL + "user/reset-password/" + resetToken ;
+  
+    try {
+      await sendEmail(user.email , "Password Reset" , passwordResetMail(user.name , resetPasswordUrl));
+  
+      res.status(200).json(
+        new ApiResponse(201,{},`Email send to ${user.email} successfully`)
+      );
+    } catch (error) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+  
+      await user.save({ validateBeforeSave: false });
+  
+      return next(new ApiError(500,error.message));
+    }
+  });
+
+export const resetPassword = asyncHandler(async (req, res, next) => {
+
+    const { password, confirmPassword } = req.body;
+
+    if(!password || !confirmPassword ){
+        return next(new ApiError(400, "Fill up al the fields"))
+    }
+
+    if ( password !== confirmPassword ) {
+        return next(new ApiError(400,"Password does not password"));
+    }
+
+    const resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(req.params.token)
+      .digest("hex");
+  
+    const user = await User.findOne({
+      resetPasswordToken,
+      isUserVerified: true,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+  
+    if (!user) {
+      return next(
+        new ApiError(
+          400,
+          "Reset Password Token is invalid or has been expired"
+        )
+      );
+    }
+  
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+  
+    await user.save({validateBeforeSave: false});
+  
+    sendToken(user, 200, res , "Logged In successfully");
+  });

@@ -117,7 +117,7 @@ export const addEmployee = asyncHandler(async (req, res, next) => {
     
     await createdEmployee.save({ validateBeforeSave: false });
   
-    const VerificationLink = process.env.FRONTEND_URL + "user/employee/verify/" +verifyToken ;
+    const VerificationLink = process.env.FRONTEND_URL + "user/verify/" +verifyToken ;
 
     await sendEmail(createdEmployee.email,"User Verification", userVerificationTemplate(createdEmployee.name,VerificationLink,OTP))
 

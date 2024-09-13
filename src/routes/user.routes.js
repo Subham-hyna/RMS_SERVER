@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js"
-import { changeCurrentPassword, getCurrentUser, loginOwner, logoutUser, registerOwner, updateAvatar, updateOwnerDetails, verifyUser } from "../controllers/user.controllers.js";
-import { authoriseRoles, verifyJWT } from "../middlewares/auth.middleware.js";
+import { changeCurrentPassword, forgotPassword, getCurrentUser, loginOwner, logoutUser, registerOwner, resetPassword, updateAvatar, updateOwnerDetails, verifyUser } from "../controllers/user.controllers.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
@@ -28,5 +28,11 @@ router.route("/update-avatar")
 
 router.route("/update-profile")
     .put(verifyJWT,updateOwnerDetails);
+
+router.route("/forgot-password")
+    .post(forgotPassword)
+
+router.route("/reset-password/:token")
+    .put(resetPassword)
     
 export default router

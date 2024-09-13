@@ -8,7 +8,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 export const addShop = asyncHandler( async(req,res,next) => {
     const {name, phoneNo, email, gstIn, shopType, line1, line2, pincode, state} = req.body;
 
-    if( [name,email,phoneNo,gstIn,shopType].some((field) => field.trim() === "")){
+    if( [name,email,phoneNo,shopType].some((field) => field.trim() === "")){
         return next(new ApiError(400, "All fields are required"))
     }
 
@@ -26,7 +26,6 @@ export const addShop = asyncHandler( async(req,res,next) => {
         pincode,
         state
     }
-    console.log(address)
 
 
     const shop = await Shop.create({
@@ -34,7 +33,7 @@ export const addShop = asyncHandler( async(req,res,next) => {
         ownerId: req.user._id,
         email,
         phoneNo,
-        gstIn,
+        gstIn : gstIn || "",
         shopType,
         address
     })
