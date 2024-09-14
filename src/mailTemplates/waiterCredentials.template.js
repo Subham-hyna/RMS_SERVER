@@ -1,19 +1,19 @@
-const userVerificationTemplate = (name, emailVerificationLink ,OTP) => {
+const userCredentialsTemplate = (name, email, saleId, password, loginLink) => {
     return `
     <!DOCTYPE html>
-  <html>
-  <head>
-      <style>
-          .restura-logo{
+      <html>
+      <head>
+          <style>
+              .restura-logo{
                   display: flex;
                   align-items: center;
                   gap: 6px;
               }
               .restura-logo p{
-                  font-size: 1.5rem;
-                  font-weight: 600;
-                  color: #604BE8;
-              }
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: #604BE8;
+            }
               .restura-logo img{
                   width: 2rem;
                   height: 2rem;
@@ -69,22 +69,28 @@ const userVerificationTemplate = (name, emailVerificationLink ,OTP) => {
               font-size: 14px;
               color: #CCCCCC;
              }
-      </style>
-  </head>
-  <body>
-      <div class="box">
-          <div class="restura-logo">
-          <p>Restura</p>
+          </style>
+      </head>
+      <body>
+          <div class="box">
+              <div class="restura-logo">
+              
+              <p>Restura</p>
+              </div>
+              <h1>Account Created!</h1>
+              <p>Hello, ${name}</p>
+              <p>Your account for managing the restaurant has been successfully created. Here are your credentials:</p>
+              <h3>Email ID - <span>${email}</span></h3>
+              <h3>Sale ID - <span>${saleId}</span></h3>
+              <h3>Temporary Password - <span>${password}</span></h3>
+              <p>Click below to log in and start managing your restaurant:</p>
+              <a href=${loginLink}><button>Login</button></a>
+              <p>Please change your password after your first login.</p>
+              <span>Best Regards, Restura Team 🍽️</span>
           </div>
-          <h1>Email Verification</h1>
-          <p>Hello, ${name}</p>
-          <p>We are excited to have you onboard. Click below to verify your email:</p>
-          <a href=${emailVerificationLink}><button>Verify Email</button></a>
-          <p>Use this OTP: <strong>${OTP}</strong></p>
-          <span>Best Regards, Restura Team 🍽️</span>
-      </div>
-  </body>
-  </html>`
+      </body>
+      </html>
+    `
 }
 
-export default userVerificationTemplate;
+export default userCredentialsTemplate;

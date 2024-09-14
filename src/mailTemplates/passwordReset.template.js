@@ -2,25 +2,39 @@ const passwordResetMail = (name , resetLink) => {
     return `
     <!DOCTYPE html>
     <html>
-    
     <head>
         <style>
+            .restura-logo{
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .restura-logo p{
+              font-size: 1.5rem;
+              font-weight: 600;
+              color: #604BE8;
+          }
+            .restura-logo img{
+                width: 2rem;
+                height: 2rem;
+            }
            .box{
-            background-color: #ffffff;
+              background-color: #f9f8fb;
             width: 70%;
             padding: 50px;
+            font-family: "Poppins", sans-serif;
            }
            .box>h1{
             margin: 0 auto;
             display: flex;
             justify-content: center;
             font-size: 30px;
-            color: #58595d;
-            font-weight: 300;
+            color: #2D00A3;
+            font-weight: 500;
            }
            .box>a{
             width: 200px;
-            background-color: #72bd76;
+            background-color: #4CAF50;
             padding: 15px;
             display: flex;
             justify-content: center;
@@ -28,12 +42,12 @@ const passwordResetMail = (name , resetLink) => {
             text-decoration: none;
            }
            .box>a:hover{
-            background-color: #3bac3b;
+            background-color: #388E3C;
             cursor: pointer;
            }
            .box>p{
             font-size: 16px;
-            color: #808080;
+            color: #606060;
            }
            .box>p:nth-child(1){
             font-weight: 600;
@@ -42,7 +56,7 @@ const passwordResetMail = (name , resetLink) => {
             outline: none;
             border: none;
             background-color: inherit;
-            color: #ffffff;
+            color: #FFFFFF;
             font-size: 16px;
             margin: 0 auto;
            }
@@ -51,23 +65,24 @@ const passwordResetMail = (name , resetLink) => {
             display: flex;
             justify-content: center;
             font-size: 14px;
-            color: #58595d;
-            color: #9799a7;
+            color: #a7adb6;
            }
         </style>
     </head>
-    
     <body>
         <div class="box">
+            <div class="restura-logo">
+           
+            <p>Restura</p>
+            </div>
             <h1>Password Reset</h1>
-            <p>Hi, ${name}</p>
-            <p>Seems like you forgot your password for Librarify. If this is true, click below to reset your password.</p>
+            <p>Hello, ${name}</p>
+            <p>It seems you have requested to reset your password for your Restura account. Click below to reset your password:</p>
             <a href=${resetLink}><button>Reset My Password</button></a>
-            <p>If you did not forgot your password you can safely ignore this email.</p>
-            <span>Love from Librarify Team 💚 </span>
+            <p>If this wasn’t you, please ignore this email.</p>
+            <span>Love from Restura Team 🍴</span>
         </div>
     </body>
-    
     </html>
 `
 };

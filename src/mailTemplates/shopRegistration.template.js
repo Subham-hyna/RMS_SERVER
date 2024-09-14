@@ -2,34 +2,48 @@ const shopRegistrationTemplate = (name, shopName) => {
     return `
     <!DOCTYPE html>
     <html>
-    
     <head>
         <style>
+            .restura-logo{
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .restura-logo p{
+              font-size: 1.5rem;
+              font-weight: 600;
+              color: #604BE8;
+          }
+            .restura-logo img{
+                width: 2rem;
+                height: 2rem;
+            }
            .box{
-            background-color: #ffffff;
+              background-color: #f9f8fb;
             width: 70%;
             padding: 50px;
+            font-family: "Poppins", sans-serif;
            }
            .box>h1{
             margin: 0 auto;
             display: flex;
             justify-content: center;
             font-size: 35px;
-            color: #58595d;
-            font-weight: 300;
+            color: #2D00A3;
+            font-weight: 500;
            }
            .box>h3{
             font-size:18px;
             font-weight: bold;
-            color: #383838;
+            color: #606060;
            }
            .box>h3>span{
             font-size: 18px;
-            color: #383838;
+            color: #000000;
            }
            .box>a{
             width: 200px;
-            background-color: #72bd76;
+            background-color: #4CAF50;
             padding: 15px;
             display: flex;
             justify-content: center;
@@ -37,21 +51,18 @@ const shopRegistrationTemplate = (name, shopName) => {
             text-decoration: none;
            }
            .box>a:hover{
-            background-color: #3bac3b;
+            background-color: #388E3C;
             cursor: pointer;
            }
            .box>p{
             font-size: 16px;
-            color: #808080;
-           }
-           .box>p:nth-child(1){
-            font-weight: 600;
+            color: #606060;
            }
            .box>a>button{
             outline: none;
             border: none;
             background-color: inherit;
-            color: #ffffff;
+            color: #FFFFFF;
             font-size: 16px;
             margin: 0 auto;
            }
@@ -60,27 +71,22 @@ const shopRegistrationTemplate = (name, shopName) => {
             display: flex;
             justify-content: center;
             font-size: 14px;
-            color: #58595d;
-            color: #9799a7;
+            color: #CCCCCC;
            }
         </style>
     </head>
-    
     <body>
         <div class="box">
-            <h1>Account Credentials</h1>
-            <p>Hi, ${name}</p>
-            <p>Here is your temporary credentials for your Librarify account</p>
-            <h3>Email ID - <span>${shopName}</span></h3>
-            <h3>Registration ID - <span></span></h3>
-            <h3>Temporary Password - <span></span></h3>
-            <p>Your Account is successfully created and verified in Librarify. Click below to login</p>
-            <a href=><button>Login</button></a>
-            <p>Note : Kindly change your password after login by change password or by clicking forgot password</p>
-            <span>Love from Librarify Team 💚 </span>
+            <div class="restura-logo">
+           
+            <p>Restura</p>
+            </div>
+            <h1>Restaurant Registered!</h1>
+            <p>Hello, ${name}</p>
+            <p>Your restaurant <strong>${shopName}</strong> has been successfully registered in our system.</p>
+            <span>Best Regards, Restura Team 🍽️</span>
         </div>
     </body>
-    
     </html>
     `
 }

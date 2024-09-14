@@ -4,7 +4,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { sendEmail } from "../utils/smtp.js";
 import userVerificationTemplate from "../mailTemplates/userVerification.template.js";
-import userCredentialsTemplate from "../mailTemplates/userCredentials.template.js"
+import waiterCredentialsTemplate from "../mailTemplates/waiterCredentials.template.js"
+import ownerCredentialsTemplate from "../mailTemplates/ownerCredentials.template.js"
 import { passwordResetMail} from '../mailTemplates/passwordReset.template.js'
 import {ApiResponse} from "../utils/apiResponse.js"
 import { sendToken } from "../utils/sendToken.js"
@@ -43,22 +44,20 @@ export const registerOwner = asyncHandler( async(req,res,next) => {
             const updatedUser = await User.findByIdAndUpdate(
                 userExist._id,
                 {
-                    $set: {
                         name,
                         email,
                         phoneNo,
                         avatar,
-                        password,
                         address
-                    }
                 },
                 {
                     new: true
                 }
-            )
+            ).select("+password");
 
             const {verifyToken, OTP} = updatedUser.generateVerificationTokenAndOtp();
     
+            updatedUser.password = password;
             await updatedUser.save({ validateBeforeSave: false });
           
             const VerificationLink = process.env.FRONTEND_URL+ "user/verify/" + verifyToken ;
@@ -161,10 +160,10 @@ export const verifyUser = asyncHandler( async(req,res,next) => {
 
         await verifiedUser.save({validateBeforeSave: false})
 
-        await sendEmail(verifiedUser.email,"Account Credentials",userCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.saleId,password,process.env.FRONTEND_URL));
+        await sendEmail(verifiedUser.email,"Account Credentials",waiterCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.saleId,password,process.env.FRONTEND_URL));
     }
     else{
-        await sendEmail(verifiedUser.email,"Account Credentials",userCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.phoneNo,"password",process.env.FRONTEND_URL));
+        await sendEmail(verifiedUser.email,"Account Credentials",ownerCredentialsTemplate(verifiedUser.name,verifiedUser.email,verifiedUser.phoneNo,process.env.FRONTEND_URL));
     }
 
     res.status(201).json(
@@ -299,8 +298,6 @@ export const updateOwnerDetails = asyncHandler(async(req,res,next)=>{
     if(!user){
         return next(new ApiError(404,"User Not Found"))
     }
-
-    console.log(user.address)
 
     const address = {
         line1,

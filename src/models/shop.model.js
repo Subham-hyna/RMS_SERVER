@@ -19,7 +19,7 @@ const shopsSchema = new mongoose.Schema({
     },
     gstIn: {
         type: String,
-        unique: true
+        // unique: true
     },
     shopType: {
         type: String,

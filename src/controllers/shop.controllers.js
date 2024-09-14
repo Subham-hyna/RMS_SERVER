@@ -33,10 +33,12 @@ export const addShop = asyncHandler( async(req,res,next) => {
         ownerId: req.user._id,
         email,
         phoneNo,
-        gstIn : gstIn || "",
         shopType,
         address
     })
+
+    if(gstIn) shop.gstIn = gstIn;
+    await shop.save({validateBeforeSave: false});
 
     const createdShop = await Shop.findById(shop._id);
 
@@ -44,7 +46,7 @@ export const addShop = asyncHandler( async(req,res,next) => {
         return next(new ApiError(400,"Something went wrong while registering the shop"));
     }
 
-    // await sendEmail(req.user.email,"Shop Registration", shopRegistationTemplate(req.user.name,shop.name))
+    await sendEmail(req.user.email,"Shop Registration", shopRegistationTemplate(req.user.name,shop.name))
 
     res
         .status(201)
