@@ -79,8 +79,7 @@ const userSchema = new Schema({
         type: Date
     },
     saleId:{
-        type: String,
-        unique: true
+        type: String
     },
     dateOfJoining: {
         type: Date,
