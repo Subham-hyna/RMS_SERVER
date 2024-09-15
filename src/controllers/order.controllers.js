@@ -10,7 +10,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const newOrder = asyncHandler(async(req,res,next) => {
-    const { cartItems, customerName, customerPhoneNo, tableNo, kotType,specialRequest, orderValue, totalOrderItems } = req.body;
+    let { cartItems, customerName, customerPhoneNo, tableNo, kotType,specialRequest, orderValue, totalOrderItems } = req.body;
 
     const { shopId } = req.params;
 
@@ -78,23 +78,14 @@ export const newOrder = asyncHandler(async(req,res,next) => {
             }
             customerId = customerExist._id;
         }
-   
 
-        let foodItems = []
-        
-        cartItems.forEach(async(c)=>{
-            const currentItem = await OrderItem.create({
-                itemId: c.foodItemId,
-                quantity: c.qty,
-                name: c.name,
-                price: c.price,
-                shopId
-            })
+        cartItems = cartItems.map((cartItem)=>({
+            ...cartItem,
+            shopId:shopId,
+            quantity: cartItem.qty
+        }))
 
-            const id = currentItem._id
-
-            foodItems.push(id);
-        })
+        const foodItems = await OrderItem.insertMany(cartItems)
 
         const prevToken = await Kot.find({}).sort({createdAt: -1});
 
@@ -133,7 +124,7 @@ export const newOrder = asyncHandler(async(req,res,next) => {
             }
             )
 
-        kot.items = [...foodItems];
+        // kot.items = [...foodItems];
         if(customerPhoneNo) kot.customerId = customerId;
         await kot.save({validateBeforeSave: false});
 
@@ -162,22 +153,14 @@ export const newOrder = asyncHandler(async(req,res,next) => {
                 })
             }
 
-
-            let foodItems = []
         
-        cartItems.forEach(async(c)=>{
-            const currentItem = await OrderItem.create({
-                itemId: c.foodItemId,
-                quantity: c.qty,
-                name: c.name,
-                price: c.price,
-                shopId
-            })
-
-            const id = currentItem._id
-
-             foodItems.push(id);
-        })
+            cartItems = cartItems.map((cartItem)=>({
+                ...cartItem,
+                shopId:shopId,
+                quantity: cartItem.qty
+            }))
+    
+            const foodItems = await OrderItem.insertMany(cartItems)
 
         const prevToken = await Kot.find({}).sort({createdAt: -1});
 
@@ -205,8 +188,6 @@ export const newOrder = asyncHandler(async(req,res,next) => {
         if(!kot){
             return next(new ApiError(400,"KOT not generated"));
         }
-
-        kot.items = [...foodItems];
 
         await kot.save({validateBeforeSave: false});
 
@@ -248,21 +229,13 @@ export const newOrder = asyncHandler(async(req,res,next) => {
             })
         }
 
-        let foodItems = [];
-        
-        cartItems.forEach(async(c)=>{
-            const currentItem = await OrderItem.create({
-                itemId: c.foodItemId,
-                quantity: c.qty,
-                name: c.name,
-                price: c.price,
-                shopId
-            })
+        cartItems = cartItems.map((cartItem)=>({
+            ...cartItem,
+            shopId:shopId,
+            quantity: cartItem.qty
+        }))
 
-            const id = currentItem._id
-
-             foodItems.push(id);
-        })
+        const foodItems = await OrderItem.insertMany(cartItems)
 
         const prevToken = await Kot.find({}).sort({createdAt: -1});
 
@@ -291,8 +264,6 @@ export const newOrder = asyncHandler(async(req,res,next) => {
         if(!kot){
             return next(new ApiError(400,"KOT not generated"));
         }
-
-        kot.items = [...foodItems];
 
         await kot.save({validateBeforeSave: false});
 
