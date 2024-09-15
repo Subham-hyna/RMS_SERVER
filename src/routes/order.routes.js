@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authoriseRoles, verifyJWT } from "../middlewares/auth.middleware.js";
-import { confirmKot, deleteKot, deleteOrderItem, editOrderItem, getKots, newOrder, rejectKot } from "../controllers/order.controllers.js";
+import { confirmKot, deleteKot, deleteOrderItem, editOrderItem, getKots, newOrder, rejectKot, updateKotStatus } from "../controllers/order.controllers.js";
 
 const router = Router();
 
@@ -24,5 +24,8 @@ router.route("/delete-orderItem/:orderItemId/:shopId")
 
 router.route("/edit-orderItem/:orderItemId/:shopId")
     .put(verifyJWT,authoriseRoles("OWNER"),editOrderItem)
+
+router.route("/update-kot/:kotId/:shopId")
+    .put(verifyJWT,updateKotStatus)
 
 export default router

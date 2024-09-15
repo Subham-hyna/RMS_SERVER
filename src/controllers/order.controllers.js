@@ -524,3 +524,23 @@ export const editOrderItem = asyncHandler(async(req,res,next)=>{
 
 })
 
+export const updateKotStatus = asyncHandler(async(req,res,next)=>{
+    const {kotId} = req.params;
+
+    const kot = await Kot.findOne({
+        $and:[{_id:kotId},{isExpired:false},{status:"COOKING"}]
+    })
+
+    if(!kot){
+        return next(new ApiError(404,"KOT not found"));
+    }
+
+    kot.status = "SERVED";
+
+    await kot.save({validateBeforeSave:false});
+
+    res.status(200).json(
+        new ApiResponse(200,{},"Food Served")
+    )
+})
+
