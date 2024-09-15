@@ -221,6 +221,10 @@ export const deleteTable = asyncHandler(async (req, res, next) => {
         return next (new ApiError(400,"Table doen't exist"));
     }
 
+    if(table.isEmpty === false){
+        return next(new ApiError(400,"Complete KOTs"))
+    }
+
     const area = await Area.findById(table.areaId);
 
     await Area.findByIdAndUpdate(

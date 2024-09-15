@@ -213,7 +213,7 @@ export const generateMultipleKotInvoice = asyncHandler(async(req,res,next) => {
 })
 
 export const paidInvoice = asyncHandler(async(req,res,next) => {
-    const { paymentMode } = req.body;
+    const { paymentMode, amountReceived } = req.body;
     const{ invoiceId } = req.params;
 
     if( !paymentMode ){
@@ -291,6 +291,11 @@ export const paidInvoice = asyncHandler(async(req,res,next) => {
 
     invoice.isPaid = true;
     invoice.paymentMode = paymentMode;
+    if(invoice.totalPayment > amountReceived){
+        invoice.discount = invoice.totalPayment - amountReceived;
+        invoice.totalPayment = amountReceived
+    }
+
     await invoice.save({validateBeforeSave:false});
 
     res.status(201).json(
@@ -358,5 +363,40 @@ export const getOneInvoice = asyncHandler(async(req,res,next)=>{
 
     res.status(200).json(
         new ApiResponse(200,{invoice},"Invoice Fetched Successfully")
+    )
+})
+
+export const addInvoiceCharges = asyncHandler(async(req,res,next)=>{
+    const { deliveryCharges, packingFee, discount } = req.body;
+
+    const { invoiceId } = req.params;
+
+    const shop = await Shop.findById(req.params.shopId);
+
+    if(!shop){
+        return next(new ApiError(400,"Shop doen't exist"))
+    }
+
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown Shop"))
+    }
+
+    const invoiceExist = await Invoice.findById(invoiceId);
+
+    if(!invoiceExist){
+        return next(new ApiError(404,"Invoice Not Found"));
+    }
+
+    invoiceExist.totalPayment = (invoiceExist.totalPayment - invoiceExist.deliveryCharges - invoiceExist.packingFee + invoiceExist.discount) + parseInt(packingFee) + parseInt(deliveryCharges) - discount;
+    invoiceExist.deliveryCharges = deliveryCharges || 0;
+    invoiceExist.packingFee = packingFee || 0;
+    invoiceExist.discount = discount || 0;
+
+    await invoiceExist.save({validateBeforeSave: false});
+
+    const invoice = await Invoice.findById(invoiceId).populate("items","name price quantity")
+
+    res.status(200).json(
+        new ApiResponse(200,{invoice},"Charges Added")
     )
 })

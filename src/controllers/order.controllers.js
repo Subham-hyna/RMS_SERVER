@@ -307,11 +307,7 @@ export const getKots = asyncHandler(async(req,res,next)=>{
     const shop = await Shop.findById(req.params.shopId);
 
     if(!shop){
-        return next(new ApiError(400,"Shop doen't exist"))
-    }
-
-    if(shop.ownerId.toString() !== req.user._id.toString()){
-        return next(new ApiError(400,"Unknown Shop"))
+        return next(new ApiError(400,"Shop doen't exist"));
     }
 
     let apiFeatures = new ApiFeatures(Kot.find({
@@ -401,6 +397,158 @@ export const rejectKot = asyncHandler(async(req,res,next)=>{
 
     res.status(200).json(
         new ApiResponse(200,{},"kot rejected")
+    )
+
+})
+
+export const deleteKot = asyncHandler(async(req,res,next)=>{
+    const shop = await Shop.findById(req.params.shopId);
+
+    if(!shop){
+        return next(new ApiError(400,"Shop doen't exist"))
+    }
+
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown Shop"))
+    }
+
+    const kotExist = await Kot.findOne({
+        $and:[{_id:req.params.kotId},{isExpired:false}]
+    });
+
+    if(!kotExist){
+        return next(new ApiError(404,"KOT not found"))
+    }
+
+    kotExist.items.forEach(async(i)=>{
+        await OrderItem.findByIdAndDelete(i)
+    })
+
+    await Kot.findByIdAndDelete(
+        req.params.kotId
+        )
+
+    const kotOfThatTable = await Kot.find({
+        $and:[{tableId: kotExist.tableId},{isExpired: false}]
+    })
+        
+    if(kotOfThatTable.length === 0) {
+        await Table.findByIdAndUpdate(
+            kotExist.tableId,
+            {
+                isEmpty: true
+            },{
+                new: true
+            }
+        )
+    }
+
+
+    res.status(200).json(
+        new ApiResponse(200,{},"kot deleted")
+    )
+
+})
+
+export const deleteOrderItem = asyncHandler(async(req,res,next)=>{
+    const { kotId } = req.body;
+    const shop = await Shop.findById(req.params.shopId);
+
+    if(!shop){
+        return next(new ApiError(400,"Shop doen't exist"))
+    }
+
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown Shop"))
+    }
+
+    const orderItemExist = await OrderItem.findOne({
+        $and:[{_id:req.params.orderItemId},{isPaid:false}]
+    });
+
+    if(!orderItemExist){
+        return next(new ApiError(404,"Order Item not found"))
+    }
+
+    await OrderItem.findByIdAndDelete(orderItemExist._id)
+
+    const kot = await Kot.findById(kotId);
+
+    kot.orderValue = kot.orderValue - (orderItemExist.quantity * orderItemExist.price)
+    kot.totalOrderItems = kot.totalOrderItems - orderItemExist.quantity
+    console.log(kotId)
+    if(kot.totalOrderItems === 0){
+        await Kot.findByIdAndDelete(kotId)
+        const kotOfThatTable = await Kot.find({
+            $and:[{tableId: kot.tableId},{isExpired: false}]
+        })
+            
+        if(kotOfThatTable.length === 0) {
+            await Table.findByIdAndUpdate(
+                kot.tableId,
+                {
+                    isEmpty: true
+                },{
+                    new: true
+                }
+            )
+        }
+
+    }else{
+        await kot.save({validateBeforeSave: false})
+    }
+
+
+    res.status(200).json(
+        new ApiResponse(200,{},"Item deleted")
+    )
+
+})
+
+export const editOrderItem = asyncHandler(async(req,res,next)=>{
+    const { quantity, kotId } = req.body;
+    const shop = await Shop.findById(req.params.shopId);
+
+    if(!shop){
+        return next(new ApiError(400,"Shop doen't exist"))
+    }
+
+    if(shop.ownerId.toString() !== req.user._id.toString()){
+        return next(new ApiError(400,"Unknown Shop"))
+    }
+
+    const orderItemExist = await OrderItem.findOne({
+        $and:[{_id:req.params.orderItemId},{isPaid:false}]
+    });
+
+    if(!orderItemExist){
+        return next(new ApiError(404,"Order Item not found"))
+    }
+
+    let updatedOrderItem = {};
+    if(quantity <= 0){
+        await OrderItem.findByIdAndDelete(orderItemExist._id);
+    }else{
+
+     updatedOrderItem =  await OrderItem.findByIdAndUpdate(
+        orderItemExist._id,
+        {
+            quantity
+        },{
+            new: true
+        }
+        )
+    }
+
+    const kot = await Kot.findById(kotId);
+
+    kot.totalOrderItems = kot.totalOrderItems - orderItemExist.quantity + updatedOrderItem.quantity;
+    kot.orderValue = kot.orderValue - (orderItemExist.quantity * orderItemExist.price) + (updatedOrderItem.quantity * updatedOrderItem.price)
+
+    await kot.save({validateBeforeSave: false})
+
+    res.status(200).json(
+        new ApiResponse(200,{},"Item Quantity Updated")
     )
 
 })

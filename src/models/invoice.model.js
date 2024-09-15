@@ -24,6 +24,18 @@ const invoiceSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'OrderItem'
     }],
+    discount:{
+        type: Number,
+        default: 0
+    },
+    deliveryCharges:{
+        type: Number,
+        default: 0
+    },
+    packingFee:{
+        type: Number,
+        default: 0
+    },
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer'

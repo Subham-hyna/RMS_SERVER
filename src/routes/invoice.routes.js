@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authoriseRoles, verifyJWT } from "../middlewares/auth.middleware.js";
-import { generateMultipleKotInvoice, generateSingleKotInvoice, getAllInvoices, getOneInvoice, paidInvoice } from "../controllers/invoice.controllers.js";
+import { addInvoiceCharges, generateMultipleKotInvoice, generateSingleKotInvoice, getAllInvoices, getOneInvoice, paidInvoice } from "../controllers/invoice.controllers.js";
 
 const router = Router();
 
@@ -12,6 +12,9 @@ router.route("/table-invoice/:shopId")
 
 router.route("/pay-invoice/:invoiceId/:shopId")
     .put(verifyJWT,authoriseRoles("OWNER"),paidInvoice)
+
+router.route("/add-charges/:invoiceId/:shopId")
+    .put(verifyJWT,authoriseRoles("OWNER"),addInvoiceCharges)
 
 router.route("/get-invoices/:shopId")
     .get(verifyJWT,authoriseRoles("OWNER"),getAllInvoices)
