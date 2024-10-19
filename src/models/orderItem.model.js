@@ -24,5 +24,7 @@ const orderItemsSchema = new mongoose.Schema({
         ref: 'Shop'
     }
 
+},{
+    timestamps: true
 });
 export const OrderItem = mongoose.model('OrderItem', orderItemsSchema);

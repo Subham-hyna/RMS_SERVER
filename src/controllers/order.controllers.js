@@ -81,6 +81,7 @@ export const newOrder = asyncHandler(async(req,res,next) => {
 
         cartItems = cartItems.map((cartItem)=>({
             ...cartItem,
+            itemId: cartItem.foodItemId,
             shopId:shopId,
             quantity: cartItem.qty
         }))
@@ -156,6 +157,7 @@ export const newOrder = asyncHandler(async(req,res,next) => {
         
             cartItems = cartItems.map((cartItem)=>({
                 ...cartItem,
+                itemId: cartItem.foodItemId,
                 shopId:shopId,
                 quantity: cartItem.qty
             }))
@@ -231,6 +233,7 @@ export const newOrder = asyncHandler(async(req,res,next) => {
 
         cartItems = cartItems.map((cartItem)=>({
             ...cartItem,
+            itemId: cartItem.foodItemId,
             shopId:shopId,
             quantity: cartItem.qty
         }))

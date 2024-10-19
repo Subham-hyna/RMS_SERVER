@@ -18,5 +18,7 @@ const customerSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Shop'
     }
+},{
+    timestamps:true
 });
 export const Customer = mongoose.model('Customer', customerSchema);
