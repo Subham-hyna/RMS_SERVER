@@ -32,6 +32,9 @@ const itemSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    priority: {
+        type: Number,
+    },
     shopId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Shop'

@@ -7,7 +7,7 @@ import { Shop } from "../models/shop.model.js";
 import { ApiFeatures } from "../utils/apiFeatures.js";
 
 export const addItem = asyncHandler(async (req, res, next) => {
-    const { name, price, mealType, shortCode, categoryId } = req.body;
+    const { name, price, mealType, shortCode, categoryId, priority} = req.body;
 
     if (!name || !price || !mealType || !categoryId) {
         return next(new ApiError(400, "All fields are required"));
@@ -37,6 +37,7 @@ export const addItem = asyncHandler(async (req, res, next) => {
         mealType,
         shortCode,
         categoryId,
+        priority,
         shopId: shop._id
     });
 
@@ -61,7 +62,7 @@ export const addItem = asyncHandler(async (req, res, next) => {
 });
 
 export const editItem = asyncHandler(async (req, res, next) => {
-    const { name, price, mealType, isAvailable, shortCode, isStar } = req.body;
+    const { name, price, mealType, isAvailable, shortCode, isStar, priority } = req.body;
 
     const shop = await Shop.findById(req.params.shopId);
 
@@ -89,7 +90,8 @@ export const editItem = asyncHandler(async (req, res, next) => {
             mealType: mealType || item.mealType,
             isAvailable: isAvailable || item.isAvailable,
             shortCode: shortCode || item.shortCode,
-            isStar: isStar || item.isStar
+            isStar: isStar || item.isStar,
+            priority: priority || item.priority,
         },
         {
             new: true,
@@ -212,7 +214,7 @@ export const getAllItems = asyncHandler(async(req,res,next) => {
         return next(new ApiError(400,"Shop doen't exist"))
     }
     
-    let apiFeatures = new ApiFeatures(Item.find({shopId:req.params.shopId}).sort({createdAt : 1}).populate("categoryId","name _id"),req.query)
+    let apiFeatures = new ApiFeatures(Item.find({shopId:req.params.shopId}).sort({priority : 1}).populate("categoryId","name _id"),req.query)
     .searchItem()
     .filter()
 
