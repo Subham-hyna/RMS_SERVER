@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authoriseRoles, verifyJWT } from "../middlewares/auth.middleware.js";
-import { addInvoiceCharges, generateMultipleKotInvoice, generateSingleKotInvoice, getAllInvoices, getOneInvoice, paidInvoice } from "../controllers/invoice.controllers.js";
+import { addInvoiceCharges, generateMultipleKotInvoice, generateSingleKotInvoice, getAllInvoices, getOneInvoice, invoiceSummary, paidInvoice } from "../controllers/invoice.controllers.js";
 
 const router = Router();
 
@@ -21,5 +21,8 @@ router.route("/get-invoices/:shopId")
 
 router.route("/get-invoice/:invoiceId")
     .get(getOneInvoice)
+
+router.route("/get-invoiceSummary/:startDate/:endDate/:shopId")
+    .get(verifyJWT,authoriseRoles("OWNER"),invoiceSummary)
 
 export default router

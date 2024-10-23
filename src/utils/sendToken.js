@@ -19,8 +19,8 @@ export const sendToken = async(user, statusCode, res, message) => {
   
     return res
     .status(statusCode)
-    .cookie("LMS_accessToken", accessToken, options)
-    .cookie("LMS_refreshToken", refreshToken, options)
+    .cookie("RMS_accessToken", accessToken, options)
+    .cookie("RMS_refreshToken", refreshToken, options)
     .json(
         new ApiResponse(
             200, 

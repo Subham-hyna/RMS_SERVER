@@ -306,48 +306,68 @@ export const paidInvoice = asyncHandler(async(req,res,next) => {
 
 export const getAllInvoices = asyncHandler(async(req,res,next)=>{
     const shop = await Shop.findById(req.params.shopId);
-    const resultPerPage = USER_RESULT_PER_PAGE;
+const resultPerPage = USER_RESULT_PER_PAGE;
 
-    if(!shop){
-        return next(new ApiError(400,"Shop doen't exist"))
-    }
+if (!shop) {
+    return next(new ApiError(400, "Shop doesn't exist"));
+}
 
-    if(shop.ownerId.toString() !== req.user._id.toString()){
-        return next(new ApiError(400,"Unknown Shop"))
-    }
+if (shop.ownerId.toString() !== req.user._id.toString()) {
+    return next(new ApiError(400, "Unknown Shop"));
+}
 
-    let apiFeatures = new ApiFeatures(Invoice.find({
-        $and:[{shopId:req.params.shopId},{isPaid:true}]
-    }).sort({createdAt :-1}).populate("items","price quantity name").populate("customerId","name phoneNo")
-,req.query)
+let { startDate, endDate } = req.query;
+
+startDate = startDate !== (undefined || "") ? new Date(startDate) : new Date(shop.createdAt)
+endDate = endDate !== (undefined || "") ? new Date(endDate) : new Date(Date.now())
+
+if(startDate > endDate){
+    return next(new ApiError(400, "Invalid Date Range"));
+}
+
+
+let dateFilter = {};
+if (startDate && endDate) {
+    dateFilter = {
+        createdAt: {
+            $gte: startDate, 
+            $lt: endDate
+        }
+    };
+}
+
+
+let apiFeatures = new ApiFeatures(Invoice.find({
+        $and: [{shopId: req.params.shopId},
+        {isPaid: true},
+        dateFilter]
+}).find().sort({ createdAt: -1 })
+  .populate("items", "price quantity name")
+  .populate("customerId", "name phoneNo"), req.query)
+    .searchInvoice()
+    .filter();
+
+let invoices = await apiFeatures.query;
+
+const invoiceFilteredCount = invoices.length;
+
+apiFeatures = new ApiFeatures(Invoice.find({
+        $and: [{shopId: req.params.shopId},
+        {isPaid: true},
+        dateFilter]
+}).sort({ createdAt: -1 })
+  .populate("items", "price quantity name")
+  .populate("customerId", "name phoneNo"), req.query)
     .searchInvoice()
     .filter()
+    .pagination(resultPerPage);
 
-    let invoices = await apiFeatures.query;
+invoices = await apiFeatures.query;
 
-    const invoiceFilteredCount = invoices.length;
+res.status(200).json(new ApiResponse(200, { invoices, resultPerPage, 
+    invoiceFilteredCount 
+}, "Invoices retrieved successfully"));
 
-    apiFeatures = new ApiFeatures(Invoice.find({
-        $and:[{shopId:req.params.shopId},{isPaid:true}]
-    }).sort({createdAt :-1}).populate("items","price quantity name").populate("customerId","name phoneNo")
-,req.query)
-    .searchInvoice()
-    .filter()
-    .pagination(resultPerPage)
-
-    invoices = await apiFeatures.query;
-
-// const startDate = new Date("2024-09-01T18:30:00.000Z");  // Start date
-// const endDate = new Date("2024-09-09T19:00:00.000Z");   
-
-// const invoices = await Invoice.find({
-//     createdAt:{
-//         $gte: startDate,
-//         $lte: endDate
-//     }
-// })
-
-    res.status(200).json(new ApiResponse(200, { invoices, resultPerPage, invoiceFilteredCount }, "Customers retrieved successfully"));
 })
 
 export const getOneInvoice = asyncHandler(async(req,res,next)=>{
@@ -400,3 +420,82 @@ export const addInvoiceCharges = asyncHandler(async(req,res,next)=>{
         new ApiResponse(200,{invoice},"Charges Added")
     )
 })
+
+export const invoiceSummary = asyncHandler(async (req, res, next) => {
+    const { startDate, endDate } = req.params;
+
+    if(!startDate || !endDate) {
+        return next(new ApiError(400, "Dates not provided"))
+    }
+  
+    const shop = await Shop.findById(req.params.shopId);
+  
+    if (!shop) {
+      return next(new ApiError(400, "Shop doesn't exist"));
+    }
+  
+    if (shop.ownerId.toString() !== req.user._id.toString()) {
+      return next(new ApiError(400, "Unknown Shop"));
+    }
+    
+    const invoiceSummary = {};
+
+    const invoiceTotal = await Invoice.aggregate([
+      {
+        "$match": {
+          "$and": [
+            { "createdAt": { "$gte": new Date(startDate), "$lt": new Date(endDate) } },
+            { "isPaid": true },
+            { "shopId": shop._id }
+          ]
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "totalPaymentSum": { "$sum": "$totalPayment" },
+          "totalInvoice": { "$sum": 1 }
+        }
+      }
+    ]);
+
+    invoiceSummary.totalAmount = invoiceTotal[0].totalPaymentSum
+    invoiceSummary.totalInvoice = invoiceTotal[0].totalInvoice
+
+    const invoicePaymentMode = await Invoice.aggregate([
+        {
+          "$match": {
+            "$and": [
+                { "createdAt": { "$gte": new Date(startDate), "$lt": new Date(endDate) } },
+              { "isPaid": true },
+              { "shopId": shop._id }
+            ]
+          }
+        },
+        {
+          "$group": {
+            "_id": "$paymentMode",
+            "totalPaymentSum": { "$sum": "$totalPayment" },
+            "totalInvoice": { "$sum": 1 }
+          }
+        },
+        {
+          "$project": {
+            "paymentMode": "$_id",
+            "totalPaymentSum": 1,
+            "totalInvoice": 1
+          }
+        },{
+            "$sort" : {
+                "totalInvoice" : -1
+            }
+        }
+      ])
+
+      invoiceSummary.paymentMode = invoicePaymentMode
+  
+    res.status(200).json(
+      new ApiResponse(200, { invoiceSummary }, "Invoice Summary Generated")
+    );
+  });
+  
