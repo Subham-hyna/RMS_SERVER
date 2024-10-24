@@ -459,6 +459,11 @@ export const invoiceSummary = asyncHandler(async (req, res, next) => {
       }
     ]);
 
+
+    if(invoiceTotal.length === 0){
+        return next(new ApiError(400,"No Invoices"))
+    }
+
     invoiceSummary.totalAmount = invoiceTotal[0].totalPaymentSum
     invoiceSummary.totalInvoice = invoiceTotal[0].totalInvoice
 
