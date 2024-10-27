@@ -77,7 +77,7 @@ export const generateSingleKotInvoice = asyncHandler(async(req,res,next) => {
             { new: true}
         )
 
-        invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","phoneNo")
+        invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
 
         res.status(201).json(
             new ApiResponse(201,{invoice},"Invoice Generated")
@@ -204,7 +204,7 @@ export const generateMultipleKotInvoice = asyncHandler(async(req,res,next) => {
         }
     )
 
-    invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","phoneNo")
+    invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
 
     res.status(201).json(
         new ApiResponse(201,{invoice},"Invoice Generated")
