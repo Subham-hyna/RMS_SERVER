@@ -23,6 +23,6 @@ router.route("/get-invoice/:invoiceId")
     .get(getOneInvoice)
 
 router.route("/get-invoiceSummary/:startDate/:endDate/:shopId")
-    .get(verifyJWT,authoriseRoles("OWNER"),invoiceSummary)
+    .post(verifyJWT,authoriseRoles("OWNER"),invoiceSummary)
 
 export default router

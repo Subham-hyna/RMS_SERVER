@@ -5,6 +5,7 @@ import { Kot } from "../models/kot.model.js";
 import { OrderItem } from "../models/orderItem.model.js";
 import { Shop } from "../models/shop.model.js";
 import { Table } from "../models/table.model.js";
+import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiFeatures } from "../utils/apiFeatures.js";
 import { ApiResponse } from "../utils/apiResponse.js";
@@ -423,9 +424,10 @@ export const addInvoiceCharges = asyncHandler(async(req,res,next)=>{
 
 export const invoiceSummary = asyncHandler(async (req, res, next) => {
     const { startDate, endDate } = req.params;
+    const { password } = req.body;
 
-    if(!startDate || !endDate) {
-        return next(new ApiError(400, "Dates not provided"))
+    if(!startDate || !endDate || !password) {
+        return next(new ApiError(400, "Dates and Password not provided"))
     }
   
     const shop = await Shop.findById(req.params.shopId);
@@ -436,6 +438,14 @@ export const invoiceSummary = asyncHandler(async (req, res, next) => {
   
     if (shop.ownerId.toString() !== req.user._id.toString()) {
       return next(new ApiError(400, "Unknown Shop"));
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    const isPasswordValid = await user.isPasswordCorrect(password);
+
+    if(!isPasswordValid){
+        return next(new ApiError(400,"Invalid user credentials"));
     }
     
     const invoiceSummary = {};
