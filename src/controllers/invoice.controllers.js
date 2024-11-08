@@ -375,7 +375,7 @@ export const getOneInvoice = asyncHandler(async(req,res,next)=>{
     const{ invoiceId } = req.params;
 
     const invoice = await Invoice.findOne({
-        $and:[{_id:invoiceId},{isPaid:true}]
+        $and:[{_id:invoiceId}]
     }).populate("items","price quantity name").populate("customerId","name phoneNo").populate("shopId","name gstIn phoneNo address")
 
     if(!invoice){
