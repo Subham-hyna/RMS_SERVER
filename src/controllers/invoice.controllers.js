@@ -11,166 +11,292 @@ import { ApiFeatures } from "../utils/apiFeatures.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const generateSingleKotInvoice = asyncHandler(async(req,res,next) => {
+// export const generateSingleKotInvoice = asyncHandler(async(req,res,next) => {
 
+//     const { kotId } = req.body;
+
+//     if( !kotId ){
+//         return next(new ApiError(400,"Kot not found"))
+//     }
+
+//     const shop = await Shop.findById(req.params.shopId);
+
+//     if(!shop){
+//         return next(new ApiError(400,"Shop doen't exist"))
+//     }
+
+//     if(shop.ownerId.toString() !== req.user._id.toString()){
+//         return next(new ApiError(400,"Unknown Shop"))
+//     }
+        
+//         const kot= await Kot.findOne({
+//             $and:[{_id:kotId},{isExpired:false}]
+//         });
+
+//         if(!kot){
+//             return next(new ApiError(400,"Kot Not found"))
+//         }
+        
+//         if(shop._id.toString() !== kot.shopId.toString()){
+//             return next(new ApiError(400,"Unknown Shop"))
+//         }
+
+//         // if(kot.invoiceId){
+//         //     const invoice = await Invoice.findById(kot.invoiceId).populate("items","itemId price quantity name").populate("customerId","phoneNo")
+//         //     res.status(201).json(
+//         //         new ApiResponse(201,{invoice},"Invoice Generated")
+//         //     )
+//         //     return;
+//         // }
+
+//         const prevToken = await Invoice.find({}).sort({createdAt: -1});
+
+//         let tokenNo = 0;
+
+//         if(prevToken.length === 0){
+//             tokenNo = 3000;
+//         }
+//         else{
+//             tokenNo = parseInt(prevToken[0].invoiceNo) + 1;
+//         }
+
+//         let invoice = await Invoice.create({
+//             invoiceNo: tokenNo,
+//             totalItems: kot.totalOrderItems,
+//             totalPayment: kot.orderValue,
+//             items: kot.items,
+//             shopId: req.params.shopId
+//         })
+//         if(kot.customerId) invoice.customerId = kot.customerId;
+//         await invoice.save({validateBeforeSave: false});
+
+//         await Kot.findByIdAndUpdate(
+//             kot._id,
+//             {
+//                 invoiceId : invoice._id
+//             },
+//             { new: true}
+//         )
+
+//         invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
+
+//         res.status(201).json(
+//             new ApiResponse(201,{invoice},"Invoice Generated")
+//         )
+
+
+// })
+
+export const generateSingleKotInvoice = asyncHandler(async (req, res, next) => {
     const { kotId } = req.body;
 
-    if( !kotId ){
-        return next(new ApiError(400,"Kot not found"))
+    // Early return if kotId is missing
+    if (!kotId) {
+        return next(new ApiError(400, "KOT ID not found"));
     }
 
+    // Fetch the shop and validate ownership
     const shop = await Shop.findById(req.params.shopId);
-
-    if(!shop){
-        return next(new ApiError(400,"Shop doen't exist"))
+    if (!shop) {
+        return next(new ApiError(400, "Shop doesn't exist"));
+    }
+    if (shop.ownerId.toString() !== req.user._id.toString()) {
+        return next(new ApiError(400, "Unauthorized Shop"));
     }
 
-    if(shop.ownerId.toString() !== req.user._id.toString()){
-        return next(new ApiError(400,"Unknown Shop"))
+    // Fetch the KOT in a single query and validate shop ownership
+    const kot = await Kot.findOne({ _id: kotId, isExpired: false, shopId: shop._id });
+    if (!kot) {
+        return next(new ApiError(400, "KOT not found or unauthorized for this shop"));
     }
+
+    // Check if an invoice already exists for the KOT
+    // if (kot.invoiceId) {
+    //     const existingInvoice = await Invoice.findById(kot.invoiceId)
+    //         .populate("items", "itemId price quantity name")
+    //         .populate("customerId", "phoneNo");
         
-        const kot= await Kot.findOne({
-            $and:[{_id:kotId},{isExpired:false}]
-        });
+    //     return res.status(200).json(
+    //         new ApiResponse(200, { invoice: existingInvoice }, "Invoice already exists")
+    //     );
+    // }
 
-        if(!kot){
-            return next(new ApiError(400,"Kot Not found"))
-        }
+    // Retrieve last invoice's tokenNo only, to generate a new token number
+    const lastInvoice = await Invoice.findOne({shopId:shop._id,isPaid:true}).sort({ createdAt: -1 }).select("invoiceNo");
+    const tokenNo = lastInvoice ? parseInt(lastInvoice.invoiceNo) + 1 : 3000;
+
+    // Create a new invoice
+    let invoice = await Invoice.create({
+                    invoiceNo: tokenNo,
+                    totalItems: kot.totalOrderItems,
+                    totalPayment: kot.orderValue,
+                    items: kot.items,
+                    shopId: req.params.shopId
+                })
+                if(kot.customerId) invoice.customerId = kot.customerId;
+                await invoice.save({validateBeforeSave: false});
         
-        if(shop._id.toString() !== kot.shopId.toString()){
-            return next(new ApiError(400,"Unknown Shop"))
-        }
-
-        // if(kot.invoiceId){
-        //     const invoice = await Invoice.findById(kot.invoiceId).populate("items","itemId price quantity name").populate("customerId","phoneNo")
-        //     res.status(201).json(
-        //         new ApiResponse(201,{invoice},"Invoice Generated")
-        //     )
-        //     return;
-        // }
-
-        const prevToken = await Invoice.find({}).sort({createdAt: -1});
-
-        let tokenNo = 0;
-
-        if(prevToken.length === 0){
-            tokenNo = 3000;
-        }
-        else{
-            tokenNo = parseInt(prevToken[0].invoiceNo) + 1;
-        }
-
-        let invoice = await Invoice.create({
-            invoiceNo: tokenNo,
-            totalItems: kot.totalOrderItems,
-            totalPayment: kot.orderValue,
-            items: kot.items,
-            shopId: req.params.shopId
-        })
-        if(kot.customerId) invoice.customerId = kot.customerId;
-        await invoice.save({validateBeforeSave: false});
-
-        await Kot.findByIdAndUpdate(
-            kot._id,
-            {
-                invoiceId : invoice._id
-            },
-            { new: true}
-        )
-
-        invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
-
-        res.status(201).json(
-            new ApiResponse(201,{invoice},"Invoice Generated")
-        )
+                await Kot.findByIdAndUpdate(
+                    kot._id,
+                    {
+                        invoiceId : invoice._id
+                    },
+                    { new: true}
+                )
+        
+                invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
+        
+                res.status(201).json(
+                    new ApiResponse(201,{invoice},"Invoice Generated")
+                )
+});
 
 
-})
+// export const generateMultipleKotInvoice = asyncHandler(async(req,res,next) => {
 
-export const generateMultipleKotInvoice = asyncHandler(async(req,res,next) => {
+//     const { tableId } = req.body;
+//     const { shopId } = req.params;
 
+//     if( !tableId ){
+//         return next(new ApiError(400,"Table Not found"))
+//     }
+
+//     const shop = await Shop.findById(shopId);
+
+//     if(!shop){
+//         return next(new ApiError(400,"Shop doen't exist"))
+//     }
+
+//     if(shop.ownerId.toString() !== req.user._id.toString()){
+//         return next(new ApiError(400,"Unknown Shop"))
+//     }
+    
+//     const table= await Table.findOne({
+//         $and:[{_id:tableId},{isEmpty:false}]
+//     });
+
+//     if(!table){
+//         return next(new ApiError(400,"Table Not found"))
+//     }
+
+//     const kots = await Kot.find({
+//         $and:[{tableId},{status:"COOKING"},{shopId},{isExpired:false}]
+//     })
+
+//     const prevToken = await Invoice.find({}).sort({createdAt: -1});
+
+//     let tokenNo = 0;
+    
+//     if(prevToken.length === 0){
+//         tokenNo = 3000;
+//     }
+//     else{
+//         tokenNo = parseInt(prevToken[0].invoiceNo) + 1;
+//     }
+
+//     let totalItems = 0;
+//     let totalPayment = 0;
+//     let items = [];
+
+//     kots.forEach((k)=>{
+//         totalItems += k.totalOrderItems;
+//         totalPayment += k.orderValue;
+//         items = [...items,...k.items];
+//     })
+
+//     let invoice = await Invoice.create({
+//         invoiceNo: tokenNo,
+//         totalItems,
+//         totalPayment,
+//         items,
+//         shopId: req.params.shopId
+//     })
+
+//     kots.forEach((k)=>{
+//         if(k.customerId) invoice.customerId = k.customerId;
+//         return
+//     })
+//     await invoice.save({validateBeforeSave: false});
+
+    
+//     kots.forEach(async(kot)=>{
+//         await Kot.findByIdAndUpdate(
+//             kot._id,
+//             {
+//                 invoiceId : invoice._id
+//             },
+//             { new: true}
+//         )
+//     })
+
+//     await Table.findByIdAndUpdate(
+//         tableId,
+//         {
+//             invoiceId: invoice._id
+//         },{
+//             new: true
+//         }
+//     )
+
+//     invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
+
+//     res.status(201).json(
+//         new ApiResponse(201,{invoice},"Invoice Generated")
+//     )
+
+// })
+
+export const generateMultipleKotInvoice = asyncHandler(async (req, res, next) => {
     const { tableId } = req.body;
     const { shopId } = req.params;
 
-    if( !tableId ){
-        return next(new ApiError(400,"Table Not found"))
+    // Validate input and shop existence
+    if (!tableId) {
+        return next(new ApiError(400, "Table Not found"));
     }
 
     const shop = await Shop.findById(shopId);
-
-    if(!shop){
-        return next(new ApiError(400,"Shop doen't exist"))
+    if (!shop) {
+        return next(new ApiError(400, "Shop doesn't exist"));
+    }
+    if (shop.ownerId.toString() !== req.user._id.toString()) {
+        return next(new ApiError(400, "Unauthorized Shop"));
     }
 
-    if(shop.ownerId.toString() !== req.user._id.toString()){
-        return next(new ApiError(400,"Unknown Shop"))
+    // Validate and fetch table
+    const table = await Table.findOne({ _id: tableId, isEmpty: false });
+    if (!table) {
+        return next(new ApiError(400, "Table Not found or is empty"));
     }
-    
-    const table= await Table.findOne({
-        $and:[{_id:tableId},{isEmpty:false}]
+
+    // Retrieve all active KOTs for the specified table
+    const kots = await Kot.find({
+        tableId,
+        status: "COOKING",
+        shopId,
+        isExpired: false
     });
 
-    if(!table){
-        return next(new ApiError(400,"Table Not found"))
+    if (kots.length === 0) {
+        return next(new ApiError(400, "No active KOTs found for this table"));
     }
 
-    const kots = await Kot.find({
-        $and:[{tableId},{status:"COOKING"},{shopId},{isExpired:false}]
-    })
+    // Generate token number based on the last invoice
+    const lastInvoice = await Invoice.findOne({ shopId, isPaid: true })
+        .sort({ createdAt: -1 })
+        .select("invoiceNo");
+    const tokenNo = lastInvoice ? parseInt(lastInvoice.invoiceNo) + 1 : 3000;
 
-    // if(table.invoiceId){
-    //     let invoice = await Invoice.findById(table.invoiceId).populate("items","itemId price quantity name").populate("customerId","phoneNo")
-        
-    //     for(let i=0;i<kots.length;i++){
-    //         if(kots[i].invoiceId.toString() === table.invoiceId.toString()){
-    //             continue;
-    //         }
-    //         invoice.totalPayment += kots[i].orderValue;
-    //         invoice.totalItems += kots[i].totalOrderItems;
-    //         invoice.items = [...invoice.items,...kots[i].items]
-
-    //         await invoice.save({validateBeforeSave:false});
-
-    //         await Kot.findByIdAndUpdate(
-    //             kots[i]._id,
-    //             {
-    //                 invoiceId : invoice._id
-    //             },
-    //             { new: true}
-    //         )
-    //     }
-
-    //     invoice = await Invoice.findById(table.invoiceId).populate("items","itemId price quantity name").populate("customerId","phoneNo")
-        
-    //     res.status(201).json(
-    //         new ApiResponse(201,{invoice},"Invoice Generated")
-    //     )
-
-
-    //     return;
-    // }
-
-    const prevToken = await Invoice.find({}).sort({createdAt: -1});
-
-    let tokenNo = 0;
-    
-    if(prevToken.length === 0){
-        tokenNo = 3000;
-    }
-    else{
-        tokenNo = parseInt(prevToken[0].invoiceNo) + 1;
-    }
-
+    // Calculate total items, total payment, and collect items from KOTs
     let totalItems = 0;
     let totalPayment = 0;
-    let items = [];
-
-    kots.forEach((k)=>{
+    const items = kots.reduce((acc, k) => {
         totalItems += k.totalOrderItems;
         totalPayment += k.orderValue;
-        items = [...items,...k.items];
-    })
+        return acc.concat(k.items);
+    }, []);
 
+    // Create and save invoice with populated items and total values
     let invoice = await Invoice.create({
         invoiceNo: tokenNo,
         totalItems,
@@ -185,125 +311,196 @@ export const generateMultipleKotInvoice = asyncHandler(async(req,res,next) => {
     })
     await invoice.save({validateBeforeSave: false});
 
-    
-    kots.forEach(async(kot)=>{
-        await Kot.findByIdAndUpdate(
-            kot._id,
-            {
-                invoiceId : invoice._id
-            },
-            { new: true}
-        )
-    })
+    // Update all KOTs to reference the new invoice
+    await Kot.updateMany(
+        { _id: { $in: kots.map((kot) => kot._id) } },
+        { invoiceId: invoice._id }
+    );
 
-    await Table.findByIdAndUpdate(
-        tableId,
-        {
-            invoiceId: invoice._id
-        },{
-            new: true
-        }
-    )
+    // Link the invoice to the table
+    await Table.findByIdAndUpdate(tableId, { invoiceId: invoice._id });
 
-    invoice = await Invoice.findById(invoice._id).populate("items","itemId price quantity name").populate("customerId","name phoneNo")
+    // Populate invoice data with related item and customer information
+    const populatedInvoice = await Invoice.findById(invoice._id)
+        .populate("items", "itemId price quantity name")
+        .populate("customerId", "name phoneNo");
 
     res.status(201).json(
-        new ApiResponse(201,{invoice},"Invoice Generated")
-    )
+        new ApiResponse(201, { invoice: populatedInvoice }, "Invoice Generated")
+    );
+});
 
-})
 
-export const paidInvoice = asyncHandler(async(req,res,next) => {
+// export const paidInvoice = asyncHandler(async(req,res,next) => {
+//     const { paymentMode, amountReceived } = req.body;
+//     const{ invoiceId } = req.params;
+
+//     if( !paymentMode ){
+//         return next(new ApiError(400,"Fill Payment mode"))
+//     }
+
+//     const shop = await Shop.findById(req.params.shopId);
+
+//     if(!shop){
+//         return next(new ApiError(400,"Shop doen't exist"))
+//     }
+
+//     if(shop.ownerId.toString() !== req.user._id.toString()){
+//         return next(new ApiError(400,"Unknown Shop"))
+//     }
+
+//     const invoice = await Invoice.findById(invoiceId)
+
+//     if(!invoice){
+//         return next(new ApiError(400,"Invoice not found"))
+//     }
+
+//     invoice.items.forEach(async(i)=>{
+//         await OrderItem.findByIdAndUpdate(
+//             i,
+//             {
+//                 isPaid: true
+//             },
+//             {
+//                 new: true
+//             }
+//         )
+//     })
+
+//     const kots = await Kot.find({
+//         $and:[{shopId:req.params.shopId},{isExpired:false},{invoiceId:invoice._id}]
+//     })
+
+//     kots.forEach(async(kot)=>{
+//         await Kot.findByIdAndUpdate(
+//             kot._id,
+//             {
+//                 status: "SERVED",
+//                 isExpired: true
+//             },{
+//                 new: true
+//             }
+//         )
+
+//         await Table.findByIdAndUpdate(
+//             kot.tableId,
+//             {
+//                 isEmpty: true,
+//                 $unset:{
+//                     invoiceId: 1
+//                 }
+//             },
+//             {
+//                 new: true
+//             }
+//         )
+//     })
+
+//     if(invoice.customerId){
+//         const customer = await Customer.findById(invoice.customerId);
+
+//         if(!customer){
+//             return next(new ApiError(404,"Customer not found"))
+//         }
+//         customer.totalSpending = customer.totalSpending + invoice.totalPayment
+//         customer.lastVisited = Date.now();
+
+//         await customer.save({validateBeforeSave:false});
+//     }
+
+//     invoice.isPaid = true;
+//     invoice.paymentMode = paymentMode;
+//     if(invoice.totalPayment > amountReceived){
+//         invoice.discount = invoice.totalPayment - amountReceived;
+//         invoice.totalPayment = amountReceived
+//     }
+
+//     await invoice.save({validateBeforeSave:false});
+
+//     res.status(201).json(
+//         new ApiResponse(200,{},"Bill Paid")
+//     )
+
+// })
+
+export const paidInvoice = asyncHandler(async (req, res, next) => {
     const { paymentMode, amountReceived } = req.body;
-    const{ invoiceId } = req.params;
+    const { invoiceId, shopId } = req.params;
 
-    if( !paymentMode ){
-        return next(new ApiError(400,"Fill Payment mode"))
+    // Validate payment mode
+    if (!paymentMode) {
+        return next(new ApiError(400, "Please specify payment mode"));
     }
 
-    const shop = await Shop.findById(req.params.shopId);
-
-    if(!shop){
-        return next(new ApiError(400,"Shop doen't exist"))
+    // Validate shop and ownership
+    const shop = await Shop.findById(shopId);
+    if (!shop) {
+        return next(new ApiError(400, "Shop doesn't exist"));
+    }
+    if (shop.ownerId.toString() !== req.user._id.toString()) {
+        return next(new ApiError(400, "Unauthorized access to shop"));
     }
 
-    if(shop.ownerId.toString() !== req.user._id.toString()){
-        return next(new ApiError(400,"Unknown Shop"))
+    // Retrieve the invoice and validate existence
+    const invoice = await Invoice.findById(invoiceId);
+    if (!invoice) {
+        return next(new ApiError(400, "Invoice not found"));
     }
 
-    const invoice = await Invoice.findById(invoiceId)
+    // Batch update all items in the invoice to mark as paid
+    await OrderItem.updateMany(
+        { _id: { $in: invoice.items } },
+        { isPaid: true }
+    );
 
-    if(!invoice){
-        return next(new ApiError(400,"Invoice not found"))
-    }
+    // Retrieve active KOTs linked to the invoice and update them
+    const kots = await Kot.find({ shopId, isExpired: false, invoiceId: invoice._id });
+    const tableIds = kots.map(kot => kot.tableId);
 
-    invoice.items.forEach(async(i)=>{
-        await OrderItem.findByIdAndUpdate(
-            i,
+    await Kot.updateMany(
+        { _id: { $in: kots.map(kot => kot._id) } },
+        { status: "SERVED", isExpired: true }
+    );
+
+    // Update tables associated with the KOTs to empty and clear invoice reference
+    await Table.findByIdAndUpdate(
+                    kots[0].tableId,
+                    {
+                        isEmpty: true,
+                        $unset:{
+                            invoiceId: 1
+                        }
+                    },
+                    {
+                        new: true
+                    }
+                )
+
+    // Update customer information if linked to the invoice
+    if (invoice.customerId) {
+        await Customer.findByIdAndUpdate(
+            invoice.customerId,
             {
-                isPaid: true
+                $inc: { totalSpending: invoice.totalPayment },
+                lastVisited: Date.now()
             },
-            {
-                new: true
-            }
-        )
-    })
-
-    const kots = await Kot.find({
-        $and:[{shopId:req.params.shopId},{isExpired:false},{invoiceId:invoice._id}]
-    })
-
-    kots.forEach(async(kot)=>{
-        await Kot.findByIdAndUpdate(
-            kot._id,
-            {
-                status: "SERVED",
-                isExpired: true
-            },{
-                new: true
-            }
-        )
-
-        await Table.findByIdAndUpdate(
-            kot.tableId,
-            {
-                isEmpty: true,
-                $unset:{
-                    invoiceId: 1
-                }
-            },
-            {
-                new: true
-            }
-        )
-    })
-
-    if(invoice.customerId){
-        const customer = await Customer.findById(invoice.customerId);
-
-        if(!customer){
-            return next(new ApiError(404,"Customer not found"))
-        }
-        customer.totalSpending = customer.totalSpending + invoice.totalPayment
-        customer.lastVisited = Date.now();
-
-        await customer.save({validateBeforeSave:false});
+            { new: true, validateBeforeSave: false }
+        );
     }
 
+    // Adjust invoice with payment details and discount if applicable
     invoice.isPaid = true;
     invoice.paymentMode = paymentMode;
-    if(invoice.totalPayment > amountReceived){
+    if (invoice.totalPayment > amountReceived) {
         invoice.discount = invoice.totalPayment - amountReceived;
-        invoice.totalPayment = amountReceived
+        invoice.totalPayment = amountReceived;
     }
 
-    await invoice.save({validateBeforeSave:false});
+    await invoice.save({ validateBeforeSave: false });
 
-    res.status(201).json(
-        new ApiResponse(200,{},"Bill Paid")
-    )
+    res.status(200).json(new ApiResponse(200, {}, "Bill Paid"));
+});
 
-})
 
 export const getAllInvoices = asyncHandler(async(req,res,next)=>{
     const shop = await Shop.findById(req.params.shopId);
